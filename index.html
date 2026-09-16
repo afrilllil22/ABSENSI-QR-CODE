@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Absensi Siswa - QR Code</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    body {
+      background-color: #fff0f3; /* Soft pink background */
+      color: #4a4a4a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      background-color: #ffffff;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 10px 25px rgba(255, 182, 193, 0.4);
+      width: 100%;
+      max-width: 450px;
+      text-align: center;
+      border: 2px solid #ffccd5;
+    }
+
+    h2 {
+      color: #ff758f;
+      margin-bottom: 20px;
+      font-weight: 600;
+    }
+
+    .status-selection {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .radio-label {
+      background-color: #fff0f3;
+      border: 2px solid #ffb3c1;
+      padding: 10px 20px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 600;
+      color: #ff758f;
+      transition: all 0.3s ease;
+    }
+
+    .status-selection input[type="radio"] {
+      display: none;
+    }
+
+    .status-selection input[type="radio"]:checked + .radio-label {
+      background-color: #ff758f;
+      color: #ffffff;
+      border-color: #ff758f;
+      box-shadow: 0 4px 10px rgba(255, 117, 143, 0.3);
+    }
+
+    #reader {
+      width: 100%;
+      border-radius: 15px;
+      overflow: hidden;
+      border: 2px dashed #ffb3c1;
+      background-color: #fff5f7;
+    }
+
+    #result-message {
+      margin-top: 20px;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      display: none;
+    }
+
+    .success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h2>Absensi QR Code</h2>
+    
+    <div class="status-selection">
+      <input type="radio" id="masuk" name="status" value="Masuk" checked>
+      <label for="masuk" class="radio-label">Masuk</label>
+      
+      <input type="radio" id="keluar" name="status" value="Keluar">
+      <label for="keluar" class="radio-label">Keluar</label>
+    </div>
+
+    <div id="reader"></div>
+
+    <div id="result-message"></div>
+  </div>
+
+  <script>
+    // ⚠️ GANTI DENGAN URL WEB APP APPS SCRIPT KAMU
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxJB7L_LUH8c301OdMY3aba07Cd6Xe4GupbhOSblODXkIYby78FY-eimHEDEoQrz_EbYQ/exec"; 
+    
+    let isProcessing = false;
+
+    function onScanSuccess(decodedText, decodedResult) {
+      if (isProcessing) return; // Mencegah scan ganda bersamaan
+      isProcessing = true;
+
+      const selectedStatus = document.querySelector('input[name="status"]:checked').value;
+      const messageBox = document.getElementById("result-message");
+
+      messageBox.style.display = "block";
+      messageBox.className = "";
+      messageBox.innerText = `Mengirim data: ${decodedText}...`;
+
+      // Kirim Data ke Apps Script
+      fetch(SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nama: decodedText,
+          keterangan: selectedStatus
+        })
+      })
+      .then(() => {
+        messageBox.className = "success";
+        messageBox.innerText = `Berhasil! ${decodedText} (${selectedStatus})`;
+        
+        // Reset scanner setelah 3 detik
+        setTimeout(() => {
+          messageBox.style.display = "none";
+          isProcessing = false;
+        }, 3000);
+      })
+      .catch(error => {
+        messageBox.className = "error";
+        messageBox.innerText = "Gagal mengirim data. Coba lagi.";
+        console.error("Error:", error);
+        isProcessing = false;
+      });
+    }
+
+    // Inisialisasi Scanner Kamera
+    const html5QrcodeScanner = new Html5QrcodeScanner(
+      "reader", 
+      { fps: 10, qrbox: { width: 200, height: 200 } },
+      /* verbose= */ false
+    );
+    html5QrcodeScanner.render(onScanSuccess);
+  </script>
+</body>
+</html>
